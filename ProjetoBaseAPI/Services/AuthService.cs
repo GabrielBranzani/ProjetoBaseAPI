@@ -74,5 +74,10 @@ namespace ProjetoBaseAPI.Services
 
 			return newToken;
 		}
+
+		public async Task Logout(string refreshToken)
+		{
+			await _authRepository.RemoverSessao(refreshToken);
+		}
 	}
 }

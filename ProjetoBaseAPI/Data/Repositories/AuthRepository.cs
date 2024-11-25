@@ -42,5 +42,12 @@ namespace ProjetoBaseAPI.Data.Repositories
 						"@refreshToken = @refreshToken, @expiracaoRefreshToken = @expiracaoRefreshToken";
 			return await connection.QuerySingleAsync<SessaoModel>(query, sessao);
 		}
+
+		public async Task RemoverSessao(string refreshToken)
+		{
+			using var connection = _context.CreateConnection();
+			var query = "EXEC stpCalControleDeSessoes @Acao = 'DESATIVAR', @refreshToken = @refreshToken";
+			await connection.ExecuteAsync(query, new { refreshToken });
+		}
 	}
 }

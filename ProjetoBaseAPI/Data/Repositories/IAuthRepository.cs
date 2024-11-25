@@ -9,5 +9,6 @@ namespace ProjetoBaseAPI.Data.Repositories
 		Task<SessaoModel> CriarSessao(SessaoModel sessao);
 		Task<SessaoModel> ObterSessaoPorRefreshToken(string refreshToken);
 		Task<SessaoModel> AtualizarSessao(SessaoModel sessao);
+		Task RemoverSessao(string refreshToken);
 	}
 }

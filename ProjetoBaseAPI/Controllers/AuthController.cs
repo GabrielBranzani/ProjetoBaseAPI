@@ -42,5 +42,19 @@ namespace ProjetoBaseAPI.Controllers
 				return BadRequest(ex.Message);
 			}
 		}
+
+		[HttpPost("logout")]
+		public async Task<ActionResult> Logout([FromBody] string refreshToken)
+		{
+			try
+			{
+				await _authService.Logout(refreshToken);
+				return Ok();
+			}
+			catch (Exception ex)
+			{
+				return BadRequest(ex.Message);
+			}
+		}
 	}
 }
