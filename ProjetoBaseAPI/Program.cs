@@ -27,10 +27,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Dependency Injection configuration
 builder.Services.AddDependencyInjectionConfiguration();
 
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+	options.AddPolicy("AllowSpecificOrigins", policy =>
+	{
+		policy.WithOrigins("http://localhost:4200") // Substitua pelo domínio do Angular
+			  .AllowAnyHeader()
+			  .AllowAnyMethod();
+	});
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
+
+// Enable CORS middleware
+app.UseCors("AllowSpecificOrigins");
 
 app.UseAuthentication();
 app.UseAuthorization();
