@@ -14,7 +14,7 @@ namespace ProjetoBaseAPI.Controllers
 
 		public PermissaoController(PermissaoService permissaoService)
 		{
-			_permissaoService = permissaoService; 1
+			_permissaoService = permissaoService; 
 
 		}
 
