@@ -28,11 +28,11 @@ namespace ProjetoBaseAPI.Services
 			}
 
 			var claims = new List<Claim>
-			{
-				new Claim(ClaimTypes.NameIdentifier, usuario.codUsuario.ToString()),
-				new Claim(ClaimTypes.Name, usuario.nomUsuario),
-				new Claim(ClaimTypes.Email, usuario.nomEmail)
-			};
+						{
+								new Claim(ClaimTypes.NameIdentifier, usuario.codUsuario.ToString()),
+								new Claim(ClaimTypes.Name, usuario.nomUsuario),
+								new Claim(ClaimTypes.Email, usuario.nomEmail)
+						};
 
 			var token = TokenHelper.GenerateAccessToken(usuario.nomEmail, claims, _configuration);
 
@@ -41,7 +41,8 @@ namespace ProjetoBaseAPI.Services
 				codUsuario = usuario.codUsuario,
 				token = token.AccessToken,
 				refreshToken = token.RefreshToken,
-				expiracaoRefreshToken = token.AccessTokenExpiration.Value.AddMinutes(int.Parse(_configuration["Jwt:RefreshTokenExpirationMinutes"])),
+				// Corrigido: Definir a data de expiração do RefreshToken como a data atual + 20 minutos
+				expiracaoRefreshToken = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["Jwt:RefreshTokenExpirationMinutes"])),
 				datCriacao = DateTime.UtcNow,
 				staAtivo = true
 			};
@@ -53,26 +54,42 @@ namespace ProjetoBaseAPI.Services
 
 		public async Task<LoginResponse> RefreshToken(string refreshToken)
 		{
-			var sessao = await _authRepository.ObterSessaoPorRefreshToken(refreshToken);
+			// Log: Início do processo de refresh token
+			Console.WriteLine($"AuthService - RefreshToken: Iniciando processo de refresh token. RefreshToken: {refreshToken}");
 
-			if (sessao == null || sessao.expiracaoRefreshToken < DateTime.UtcNow || !sessao.staAtivo)
+			try
 			{
-				throw new Exception("Refresh token inválido ou expirado.");
+				var sessao = await _authRepository.ObterSessaoPorRefreshToken(refreshToken);
+
+				if (sessao == null || sessao.expiracaoRefreshToken < DateTime.UtcNow || !sessao.staAtivo)
+				{
+					// Log: Refresh token inválido ou expirado
+					Console.WriteLine($"AuthService - RefreshToken: Refresh token inválido ou expirado. RefreshToken: {refreshToken}");
+					throw new Exception("Refresh token inválido ou expirado.");
+				}
+
+				var principal = TokenHelper.GetPrincipalFromExpiredToken(sessao.token, _configuration);
+				var username = principal.Identity.Name;
+				var claims = principal.Claims;
+
+				var newToken = TokenHelper.GenerateAccessToken(username, claims, _configuration);
+
+				sessao.token = newToken.AccessToken;
+				sessao.refreshToken = newToken.RefreshToken;
+				sessao.expiracaoRefreshToken = newToken.AccessTokenExpiration.Value.AddMinutes(int.Parse(_configuration["Jwt:RefreshTokenExpirationMinutes"]));
+
+				await _authRepository.AtualizarSessao(sessao);
+
+				// Log: Refresh token concluído com sucesso
+				Console.WriteLine($"AuthService - RefreshToken: Refresh token concluído com sucesso. RefreshToken: {refreshToken}");
+				return newToken;
 			}
-
-			var principal = TokenHelper.GetPrincipalFromExpiredToken(sessao.token, _configuration);
-			var username = principal.Identity.Name;
-			var claims = principal.Claims;
-
-			var newToken = TokenHelper.GenerateAccessToken(username, claims, _configuration);
-
-			sessao.token = newToken.AccessToken;
-			sessao.refreshToken = newToken.RefreshToken;
-			sessao.expiracaoRefreshToken = newToken.AccessTokenExpiration.Value.AddMinutes(int.Parse(_configuration["Jwt:RefreshTokenExpirationMinutes"]));
-
-			await _authRepository.AtualizarSessao(sessao);
-
-			return newToken;
+			catch (Exception ex)
+			{
+				// Log: Erro ao renovar o token
+				Console.WriteLine($"AuthService - RefreshToken: Erro ao renovar o token. RefreshToken: {refreshToken} - Erro: {ex.Message}");
+				throw; // Repassa a exceção para ser tratada pelo controlador
+			}
 		}
 
 		public async Task Logout(string refreshToken)
