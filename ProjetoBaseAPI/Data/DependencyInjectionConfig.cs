@@ -1,8 +1,7 @@
-﻿using ProjetoBaseAPI.Data;
+﻿using ProjetoBaseAPI.BackgroundServices;
+using ProjetoBaseAPI.Data;
 using ProjetoBaseAPI.Data.Repositories;
 using ProjetoBaseAPI.Services;
-//using ProjetoBaseAPI.Data.Repositories;
-//using ProjetoBaseAPI.Services;
 
 namespace ProjetoBaseAPI.Configuration
 {
@@ -14,12 +13,16 @@ namespace ProjetoBaseAPI.Configuration
 			services.AddScoped<DapperContext>();
 
 			// Repositórios
-			services.AddScoped<IAuthRepository, AuthRepository>();
-
+			services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+			services.AddScoped<ISessaoRepository, SessaoRepository>();
 
 			// Serviços
-			services.AddScoped<AuthService>();
-			
+			services.AddScoped<IUsuarioService, UsuarioService>();
+			services.AddScoped<ISessaoService, SessaoService>();
+
+			// Background Service
+			services.AddHostedService<SessaoExpiradaBackgroundService>();
+
 		}
 	}
 }

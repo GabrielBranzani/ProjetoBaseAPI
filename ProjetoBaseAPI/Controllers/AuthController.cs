@@ -1,6 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using ProjetoBaseAPI.Models.Auth;
+using Microsoft.IdentityModel.Tokens;
+using ProjetoBaseAPI.Models;
 using ProjetoBaseAPI.Services;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace ProjetoBaseAPI.Controllers
 {
@@ -8,53 +12,61 @@ namespace ProjetoBaseAPI.Controllers
 	[Route("api/[controller]")]
 	public class AuthController : ControllerBase
 	{
-		private readonly AuthService _authService;
+		private readonly IUsuarioService _usuarioService;
+		private readonly ISessaoService _sessaoService;
+		private readonly IConfiguration _configuration;
 
-		public AuthController(AuthService authService)
+		public AuthController(IUsuarioService usuarioService, ISessaoService sessaoService, IConfiguration configuration)
 		{
-			_authService = authService;
+			_usuarioService = usuarioService;
+			_sessaoService = sessaoService;
+			_configuration = configuration;
 		}
 
 		[HttpPost("login")]
-		public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest loginRequest)
+		public async Task<IActionResult> Login(UsuariosModel usuario)
 		{
-			try
+			var usuarioAutenticado = await _usuarioService.AutenticarUsuario(usuario.numCPF, usuario.SenhaHash);
+			if (usuarioAutenticado == null)
 			{
-				var loginResponse = await _authService.Login(loginRequest);
-				return Ok(loginResponse);
+				return Unauthorized();
 			}
-			catch (Exception ex)
-			{
-				return BadRequest(ex.Message);
-			}
-		}
 
-		[HttpPost("refresh-token")]
-		public async Task<ActionResult<LoginResponse>> RefreshToken([FromBody] string refreshToken)
-		{
-			try
-			{
-				var loginResponse = await _authService.RefreshToken(refreshToken);
-				return Ok(loginResponse);
-			}
-			catch (Exception ex)
-			{
-				return BadRequest(ex.Message);
-			}
-		}
+			var tokenHandler = new JwtSecurityTokenHandler();
+			var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
 
-		[HttpPost("logout")]
-		public async Task<ActionResult> Logout([FromBody] string refreshToken)
-		{
-			try
+			// Criar uma nova sessão com TokenJWT vazio inicialmente
+			var sessao = new SessaoModel
 			{
-				await _authService.Logout(refreshToken);
-				return Ok();
-			}
-			catch (Exception ex)
+				codUsuario = usuarioAutenticado.codUsuario,
+				TokenJWT = "",
+				expTokenJWT = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:AccessTokenExpirationMinutes"])),
+				codSignalR = 0,
+				staAtivo = true
+			};
+			var novaSessao = await _sessaoService.CriarSessao(sessao);
+
+			// Criar o token JWT com a claim codSessao após criar a sessão
+			var tokenDescriptor = new SecurityTokenDescriptor
 			{
-				return BadRequest(ex.Message);
-			}
+				Subject = new ClaimsIdentity(new Claim[]
+					{
+										new Claim(ClaimTypes.Name, usuarioAutenticado.codUsuario.ToString()),
+										new Claim("codSessao", novaSessao.codSessao.ToString())
+					}),
+				Expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:AccessTokenExpirationMinutes"])),
+				Issuer = _configuration["Jwt:Issuer"],
+				Audience = _configuration["Jwt:Audience"],
+				SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+			};
+			var token = tokenHandler.CreateToken(tokenDescriptor);
+			var tokenString = tokenHandler.WriteToken(token);
+
+			// Atualizar o TokenJWT na sessão com o tokenString gerado
+			await _sessaoService.AtualizarToken(novaSessao.codSessao, tokenString, novaSessao.expTokenJWT);
+
+			// Retornar o token e o código da sessão
+			return Ok(new { Token = tokenString, CodSessao = novaSessao.codSessao });
 		}
 	}
 }

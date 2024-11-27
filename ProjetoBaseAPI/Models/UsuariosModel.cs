@@ -1,13 +1,12 @@
 ﻿namespace ProjetoBaseAPI.Models
 {
-	public class UsuarioModel
+	public class UsuariosModel
 	{
 		public int codUsuario { get; set; }
 		public string nomUsuario { get; set; }
-		public string nomEmail { get; set; }
-		public string senhaHash { get; set; }
+		public string numCPF { get; set; }
+		public string SenhaHash { get; set; }
 		public DateTime datCriacao { get; set; }
-		public DateTime ultimoAcesso { get; set; }
 		public bool staAtivo { get; set; }
 	}
 }
