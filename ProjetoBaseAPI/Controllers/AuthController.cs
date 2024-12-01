@@ -52,7 +52,8 @@ namespace ProjetoBaseAPI.Controllers
 				Subject = new ClaimsIdentity(new Claim[]
 					{
 										new Claim(ClaimTypes.Name, usuarioAutenticado.codUsuario.ToString()),
-										new Claim("codSessao", novaSessao.codSessao.ToString())
+										new Claim("codSessao", novaSessao.codSessao.ToString()),
+										new Claim("codUsuario", usuarioAutenticado.codUsuario.ToString())
 					}),
 				Expires = DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:AccessTokenExpirationMinutes"])),
 				Issuer = _configuration["Jwt:Issuer"],
@@ -62,11 +63,17 @@ namespace ProjetoBaseAPI.Controllers
 			var token = tokenHandler.CreateToken(tokenDescriptor);
 			var tokenString = tokenHandler.WriteToken(token);
 
-			// Atualizar o TokenJWT na sessão com o tokenString gerado
-			await _sessaoService.AtualizarToken(novaSessao.codSessao, tokenString, novaSessao.expTokenJWT);
+			// Obtenha o fuso horário do seu servidor
+			var timeZone = TimeZoneInfo.FindSystemTimeZoneById("E. South America Standard Time"); // Substitua pelo ID do seu fuso horário
+
+			// Converta a data para o fuso horário do servidor
+			var expTokenJWTLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow.AddMinutes(Convert.ToDouble(_configuration["Jwt:AccessTokenExpirationMinutes"])), timeZone);
+
+			// Atualize o token JWT na sessão com a data convertida
+			await _sessaoService.AtualizarToken(novaSessao.codSessao, tokenString, expTokenJWTLocal);
 
 			// Retornar o token e o código da sessão
-			return Ok(new { Token = tokenString, CodSessao = novaSessao.codSessao });
+			return Ok(new { Token = tokenString, CodSessao = novaSessao.codSessao, CodUsuario = novaSessao.codUsuario});
 		}
 	}
 }

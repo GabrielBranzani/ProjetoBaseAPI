@@ -49,7 +49,7 @@ var app = builder.Build();
 app.UseCors("AllowSpecificOrigins");
 
 app.UseAuthentication();
-app.UseMiddleware<AutenticacaoMiddleware>();
+//app.UseMiddleware<AutenticacaoMiddleware>();
 app.UseAuthorization();
 
 // Mapeando o Hub do SignalR
