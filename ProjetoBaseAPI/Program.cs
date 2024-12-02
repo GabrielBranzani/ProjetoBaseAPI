@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using ProjetoBaseAPI;
 using ProjetoBaseAPI.Configuration;
-using ProjetoBaseAPI.Hubs;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,11 +48,7 @@ var app = builder.Build();
 app.UseCors("AllowSpecificOrigins");
 
 app.UseAuthentication();
-//app.UseMiddleware<AutenticacaoMiddleware>();
 app.UseAuthorization();
-
-// Mapeando o Hub do SignalR
-app.MapHub<UsuarioHub>("/usuarioHub");
 
 app.MapControllers();
 
