@@ -33,9 +33,11 @@ builder.Services.AddCors(options =>
 {
 	options.AddPolicy("AllowSpecificOrigins", policy =>
 	{
-		policy.WithOrigins("http://localhost:4200") // Substitua pelo domínio do Angular
-			  .AllowAnyHeader()
-			  .AllowAnyMethod();
+		policy.WithOrigins("http://localhost:4200")
+				 .AllowAnyHeader()
+				 .AllowAnyMethod()
+
+				 .AllowCredentials(); // Adicione esta linha
 	});
 });
 

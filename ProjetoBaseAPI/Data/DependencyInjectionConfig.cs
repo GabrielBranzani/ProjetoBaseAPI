@@ -1,4 +1,6 @@
 ﻿using ProjetoBaseAPI.Data;
+using ProjetoBaseAPI.Data.Repositories;
+using ProjetoBaseAPI.Services;
 
 namespace ProjetoBaseAPI.Configuration
 {
@@ -10,13 +12,13 @@ namespace ProjetoBaseAPI.Configuration
 			services.AddScoped<DapperContext>();
 
 			// Repositórios:
-
+			services.AddScoped<UsuarioRepository>();
 
 			// Serviços:
-			
+			services.AddScoped<TokenService>();
 
 			// Background Service:
-			
+
 
 		}
 	}
